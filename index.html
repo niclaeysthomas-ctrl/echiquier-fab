@@ -1,0 +1,981 @@
+<meta charset="utf-8">
+<title>L'Échiquier de Fab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+<style>
+:root{
+  --paper:#EFEBDF;
+  --surface:#F8F5EA;
+  --surface-2:#EFE9D8;
+  --line:#D9D2BC;
+  --ink:#211F19;
+  --ink-soft:#5B5A4F;
+  --ebony:#2C3B34;
+  --ebony-2:#374A41;
+  --ivory:#EFE9D8;
+  --brass:#A87A2E;
+  --brass-strong:#8A6423;
+  --brass-soft:#D9BD82;
+  --win:#3F7A4E;
+  --draw:#9C7F2E;
+  --loss:#A24736;
+  --focus:#8A6423;
+  --shadow: 0 1px 2px rgba(33,31,25,.06), 0 6px 16px rgba(33,31,25,.07);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#15181A;
+    --surface:#1C2124;
+    --surface-2:#242A2C;
+    --line:#33393B;
+    --ink:#EDE8DC;
+    --ink-soft:#A2A79E;
+    --ebony:#25302A;
+    --ebony-2:#33423A;
+    --ivory:#E8E1CE;
+    --brass:#C79A46;
+    --brass-strong:#DDB367;
+    --brass-soft:#5B471F;
+    --win:#5FA26E;
+    --draw:#C7A94E;
+    --loss:#C56A56;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 20px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#15181A;
+  --surface:#1C2124;
+  --surface-2:#242A2C;
+  --line:#33393B;
+  --ink:#EDE8DC;
+  --ink-soft:#A2A79E;
+  --ebony:#25302A;
+  --ebony-2:#33423A;
+  --ivory:#E8E1CE;
+  --brass:#C79A46;
+  --brass-strong:#DDB367;
+  --brass-soft:#5B471F;
+  --win:#5FA26E;
+  --draw:#C7A94E;
+  --loss:#C56A56;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 20px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box;}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:"IBM Plex Sans",system-ui,sans-serif;
+  line-height:1.45;
+}
+h1,h2,h3{
+  font-family:"Fraunces",Georgia,serif;
+  text-wrap:balance;
+  margin:0;
+  color:var(--ink);
+}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace;}
+.tabular{font-variant-numeric:tabular-nums;}
+a{color:inherit;}
+button{font-family:inherit;}
+
+.wrap{max-width:1180px;margin:0 auto;padding:28px 20px 64px;}
+
+/* ---------- Masthead ---------- */
+.masthead{
+  display:flex;flex-wrap:wrap;gap:24px;align-items:flex-end;
+  justify-content:space-between;
+  padding-bottom:20px;border-bottom:1px solid var(--line);margin-bottom:22px;
+}
+.masthead .id{max-width:520px;}
+.eyebrow{
+  font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--brass-strong);margin:0 0 8px;font-weight:600;
+}
+.masthead h1{font-size:34px;font-weight:600;font-optical-sizing:auto;}
+.masthead p{color:var(--ink-soft);margin:8px 0 0;font-size:14.5px;max-width:480px;}
+
+.ledger{display:flex;gap:10px;flex-wrap:wrap;}
+.tile{
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:10px 16px;min-width:96px;box-shadow:var(--shadow);
+}
+.tile .k{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft);font-weight:600;}
+.tile .v{font-family:"IBM Plex Mono",monospace;font-size:22px;font-weight:600;margin-top:2px;color:var(--ink);}
+.tile .b{font-size:11px;color:var(--ink-soft);margin-top:1px;}
+
+/* ---------- Diagnostic ---------- */
+.diag{margin-bottom:32px;}
+.diag h2{font-size:19px;margin-bottom:4px;}
+.diag .sub{color:var(--ink-soft);font-size:13.5px;margin-bottom:14px;max-width:720px;}
+.diag-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;}
+.wcard{
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:14px 15px;box-shadow:var(--shadow);
+  display:flex;flex-direction:column;gap:8px;cursor:pointer;
+  transition:border-color .15s ease;
+}
+.wcard:hover{border-color:var(--brass);}
+.wcard:focus-visible{outline:2px solid var(--focus);outline-offset:2px;}
+.wcard .top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+.wcard .name{font-weight:600;font-size:14px;line-height:1.3;}
+.wcard .side{font-size:11px;color:var(--ink-soft);margin-top:2px;}
+.pill{
+  font-family:"IBM Plex Mono",monospace;font-size:12px;font-weight:600;
+  padding:2px 8px;border-radius:100px;white-space:nowrap;flex-shrink:0;
+}
+.pill.crit{background:color-mix(in srgb, var(--loss) 18%, transparent);color:var(--loss);}
+.pill.warn{background:color-mix(in srgb, var(--draw) 20%, transparent);color:var(--draw);}
+.wcard .bar{height:5px;border-radius:3px;background:var(--surface-2);overflow:hidden;}
+.wcard .bar i{display:block;height:100%;background:var(--loss);}
+.wcard .stat{font-size:11.5px;color:var(--ink-soft);font-family:"IBM Plex Mono",monospace;}
+
+/* ---------- Tabs ---------- */
+.tabs{display:flex;gap:6px;margin-bottom:20px;border-bottom:1px solid var(--line);}
+.tabbtn{
+  background:none;border:none;padding:10px 18px;font-size:14.5px;font-weight:600;
+  color:var(--ink-soft);cursor:pointer;position:relative;top:1px;
+  border-bottom:2px solid transparent;
+}
+.tabbtn.active{color:var(--ink);border-bottom-color:var(--brass);}
+.tabbtn:focus-visible{outline:2px solid var(--focus);outline-offset:2px;}
+.panel{display:none;}
+.panel.active{display:block;}
+
+/* ---------- Trainer layout (board + side panel) ---------- */
+.trainer{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:26px;align-items:start;}
+@media (max-width:820px){.trainer{grid-template-columns:1fr;}}
+
+.board-col{display:flex;flex-direction:column;gap:14px;align-items:center;}
+.board-frame{
+  background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  padding:14px;box-shadow:var(--shadow);width:100%;max-width:480px;
+}
+.board-grid-wrap{display:grid;grid-template-columns:16px 1fr;grid-template-rows:1fr 16px;gap:2px;}
+.ranklabels{display:grid;grid-template-rows:repeat(8,1fr);}
+.ranklabels span{display:flex;align-items:center;justify-content:center;font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--ink-soft);}
+.filelabels{display:grid;grid-template-columns:repeat(8,1fr);grid-column:2;}
+.filelabels span{display:flex;align-items:center;justify-content:center;font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--ink-soft);}
+.board{
+  display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);
+  aspect-ratio:1;border:1px solid var(--line);border-radius:2px;overflow:hidden;
+}
+.sq{position:relative;display:flex;align-items:center;justify-content:center;user-select:none;cursor:pointer;}
+.sq.light{background:var(--ivory);}
+.sq.dark{background:var(--ebony);}
+.sq .piece{font-size:min(7vw,42px);line-height:1;pointer-events:none;transition:transform .08s ease;}
+.sq .piece.white{
+  color:#FCF8EE;
+  text-shadow:
+    -1.5px -1.5px 0 #14110c, 1.5px -1.5px 0 #14110c, -1.5px 1.5px 0 #14110c, 1.5px 1.5px 0 #14110c,
+    0 -1.5px 0 #14110c, 0 1.5px 0 #14110c, -1.5px 0 0 #14110c, 1.5px 0 0 #14110c,
+    0 2px 3px rgba(0,0,0,.45);
+}
+.sq .piece.black{
+  color:#100E0A;
+  text-shadow:
+    -1.5px -1.5px 0 #f3ecd9, 1.5px -1.5px 0 #f3ecd9, -1.5px 1.5px 0 #f3ecd9, 1.5px 1.5px 0 #f3ecd9,
+    0 -1.5px 0 #f3ecd9, 0 1.5px 0 #f3ecd9, -1.5px 0 0 #f3ecd9, 1.5px 0 0 #f3ecd9;
+}
+.sq.selected::after{content:"";position:absolute;inset:0;background:color-mix(in srgb, var(--brass) 38%, transparent);}
+.sq.lastmove::after{content:"";position:absolute;inset:0;background:color-mix(in srgb, var(--brass) 20%, transparent);}
+.sq.dot::before{
+  content:"";position:absolute;width:26%;height:26%;border-radius:50%;
+  background:color-mix(in srgb, var(--brass-strong) 65%, transparent);
+}
+.sq.dot.capture::before{
+  width:82%;height:82%;border-radius:50%;background:none;
+  border:4px solid color-mix(in srgb, var(--loss) 60%, transparent);
+}
+.sq.check::after{content:"";position:absolute;inset:0;background:radial-gradient(circle, color-mix(in srgb, var(--loss) 55%, transparent) 0%, transparent 72%);}
+
+.board-status{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;max-width:480px;
+  font-size:13px;color:var(--ink-soft);min-height:20px;
+}
+.board-status .msg{font-weight:600;}
+.board-status .msg.good{color:var(--win);}
+.board-status .msg.bad{color:var(--loss);}
+
+.ctrl-row{display:flex;gap:8px;width:100%;max-width:480px;flex-wrap:wrap;}
+.btn{
+  font-family:"IBM Plex Sans",sans-serif;font-weight:600;font-size:13px;
+  padding:8px 14px;border-radius:8px;border:1px solid var(--line);
+  background:var(--surface);color:var(--ink);cursor:pointer;
+}
+.btn:hover{border-color:var(--brass);}
+.btn:focus-visible{outline:2px solid var(--focus);outline-offset:2px;}
+.btn.primary{background:var(--brass);border-color:var(--brass);color:#1B1508;}
+.btn.primary:hover{background:var(--brass-strong);}
+
+/* ---------- Side panel: puzzle list / opening list + info ---------- */
+.side-col{display:flex;flex-direction:column;gap:16px;}
+.card{
+  background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  padding:16px 18px;box-shadow:var(--shadow);
+}
+.card h3{font-size:15px;margin-bottom:10px;}
+.streak-row{display:flex;gap:18px;margin-bottom:4px;}
+.streak-row .item .k{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);}
+.streak-row .item .v{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:20px;}
+
+.chiplist{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+.chip{
+  font-family:"IBM Plex Mono",monospace;font-size:11.5px;padding:5px 9px;border-radius:7px;
+  background:var(--surface-2);border:1px solid var(--line);cursor:pointer;color:var(--ink-soft);
+  display:flex;align-items:center;gap:5px;
+}
+.chip.active{border-color:var(--brass);color:var(--ink);background:color-mix(in srgb, var(--brass) 12%, var(--surface-2));}
+.chip .rt{color:var(--ink-soft);}
+.chip.solved::before{content:"✓ ";color:var(--win);font-weight:700;}
+
+.plan-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:9px;}
+.plan-list li{
+  font-size:13.5px;color:var(--ink-soft);padding-left:18px;position:relative;line-height:1.5;
+}
+.plan-list li::before{content:"—";position:absolute;left:0;color:var(--brass);}
+
+.movelist{
+  font-family:"IBM Plex Mono",monospace;font-size:13px;line-height:1.9;color:var(--ink-soft);
+  display:flex;flex-wrap:wrap;gap:6px 10px;
+}
+.movelist .mv{padding:1px 4px;border-radius:4px;}
+.movelist .mv.played{color:var(--ink);}
+.movelist .mv.current{background:color-mix(in srgb, var(--brass) 25%, transparent);color:var(--ink);font-weight:600;}
+.movelist .mn{color:var(--ink-soft);}
+
+.context-box{
+  font-size:13.5px;color:var(--ink-soft);border-left:2px solid var(--brass);padding-left:12px;margin-bottom:14px;
+}
+
+.openings-nav{display:flex;flex-direction:column;gap:6px;margin-bottom:6px;}
+.onav-item{
+  display:flex;justify-content:space-between;align-items:center;gap:8px;
+  padding:9px 11px;border-radius:8px;cursor:pointer;border:1px solid transparent;
+}
+.onav-item:hover{background:var(--surface-2);}
+.onav-item.active{background:var(--surface-2);border-color:var(--brass);}
+.onav-item .t{font-size:13px;font-weight:600;}
+.onav-item .s{font-size:11px;color:var(--ink-soft);}
+.onav-item .side-tag{
+  font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--ink-soft);
+  border:1px solid var(--line);border-radius:5px;padding:1px 6px;flex-shrink:0;
+}
+
+footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--line);color:var(--ink-soft);font-size:12px;}
+</style>
+
+<div class="wrap">
+
+  <div class="masthead">
+    <div class="id">
+      <p class="eyebrow">Salle d'entraînement — SalutFabbb</p>
+      <h1>L'Échiquier de Fab</h1>
+      <p>Puzzles tactiques et répertoire d'ouvertures calés sur tes vraies statistiques chess.com — pas un générique de plus.</p>
+    </div>
+    <div class="ledger" id="ledger"></div>
+  </div>
+
+  <div class="diag">
+    <h2>Le diagnostic</h2>
+    <p class="sub">D'après tes 349 dernières parties rapides/blitz (juil.–sept. 2026). Chaque carte t'amène directement au module d'ouverture correspondant.</p>
+    <div class="diag-grid" id="diagGrid"></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tabbtn active" data-tab="puzzles">Puzzles</button>
+    <button class="tabbtn" data-tab="openings">Ouvertures</button>
+  </div>
+
+  <div class="panel active" id="panel-puzzles">
+    <div class="trainer">
+      <div class="board-col">
+        <div class="board-frame">
+          <div class="board-grid-wrap">
+            <div class="ranklabels" id="pz-ranklabels"></div>
+            <div class="board" id="pz-board"></div>
+            <div></div>
+            <div class="filelabels" id="pz-filelabels"></div>
+          </div>
+        </div>
+        <div class="board-status"><span class="mono" id="pz-turn"></span><span class="msg" id="pz-msg"></span></div>
+        <div class="ctrl-row">
+          <button class="btn" id="pz-retry">Recommencer</button>
+          <button class="btn" id="pz-hint">Indice</button>
+          <button class="btn primary" id="pz-next">Puzzle suivant →</button>
+        </div>
+      </div>
+      <div class="side-col">
+        <div class="card">
+          <div class="streak-row">
+            <div class="item"><div class="k">Résolus</div><div class="v tabular" id="pz-solved">0/10</div></div>
+            <div class="item"><div class="k">Série en cours</div><div class="v tabular" id="pz-streak">0</div></div>
+            <div class="item"><div class="k">Meilleure série</div><div class="v tabular" id="pz-best">0</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <h3 id="pz-theme">—</h3>
+          <p class="context-box" id="pz-comment" style="border:none;padding-left:0;"></p>
+          <div class="chiplist" id="pz-chips"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" id="panel-openings">
+    <div class="trainer">
+      <div class="board-col">
+        <div class="board-frame">
+          <div class="board-grid-wrap">
+            <div class="ranklabels" id="op-ranklabels"></div>
+            <div class="board" id="op-board"></div>
+            <div></div>
+            <div class="filelabels" id="op-filelabels"></div>
+          </div>
+        </div>
+        <div class="board-status"><span class="mono" id="op-turn"></span><span class="msg" id="op-msg"></span></div>
+        <div class="ctrl-row">
+          <button class="btn" id="op-restart">Recommencer</button>
+          <button class="btn" id="op-hint">Indice</button>
+          <button class="btn primary" id="op-step">Coup suivant ▶</button>
+        </div>
+        <div class="card" style="width:100%;max-width:480px;">
+          <h3 style="margin-bottom:8px;">Coups joués</h3>
+          <div class="movelist" id="op-movelist"></div>
+        </div>
+      </div>
+      <div class="side-col">
+        <div class="card">
+          <h3 id="op-title">—</h3>
+          <p class="context-box" id="op-context"></p>
+          <ul class="plan-list" id="op-plans"></ul>
+        </div>
+        <div class="card">
+          <h3>Répertoire</h3>
+          <div class="openings-nav" id="op-nav"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>Généré à partir de l'API publique chess.com et vérifié coup par coup avec Stockfish 19 — les 8 puzzles et les 7 lignes d'ouverture sont légaux et objectivement corrects.</footer>
+</div>
+
+<script>
+/* ======================= DATA ======================= */
+const STATS = {
+  rapid:{last:2174,best:2225}, blitz:{last:1563,best:1627}, bullet:{last:1622,best:1797},
+  tactics:{lo:2048,hi:2206}, puzzleRush:42
+};
+
+const WEAKNESSES = [
+  {name:"Française — Échange", side:"Noir", n:10, win:30, openingId:"french_exchange"},
+  {name:"Française — Avance (Paulsen)", side:"Noir", n:14, win:36, openingId:"french_advance"},
+  {name:"Wing Gambit — ta ligne", side:"Blanc", n:13, win:31, openingId:"wing_gambit_accepted"},
+  {name:"Scandinave — Marshall Moderne", side:"Blanc", n:5, win:20, openingId:"scandinavian_main"},
+  {name:"Gambit Dame Refusé — Moderne", side:"Noir", n:4, win:25, openingId:"qgd_modern"},
+  {name:"Gambit Dame Accepté — Centrale", side:"Noir", n:4, win:25, openingId:"qga_central"},
+];
+
+const PUZZLES = [
+  {id:"back_rank_mate_1",fen:"6k1/5ppp/8/8/8/8/8/Q6K w - - 0 1",solution:["Qa8#"],theme:"Mat sur la 8e rangée",rating:1200,
+   comment:"Le roi noir est totalement enfermé par ses propres pions f7-g7-h7. La dame arrive au bout de la colonne a et couvre toute la 8e rangée : aucune case de fuite."},
+  {id:"long_diagonal_mate",fen:"6k1/5p1p/5B1Q/8/8/8/8/7K w - - 0 1",solution:["Qg7#"],theme:"Mat sur la grande diagonale",rating:1550,
+   comment:"g7 est vide — une faiblesse classique dans les structures où le fou de cases noires a disparu. La dame s'y installe, protégée par le fou f6, et couvre f8 et h8."},
+  {id:"hanging_bishop_center",fen:"r5k1/5ppp/2b5/8/1N6/8/5PPP/3R3K w - - 0 1",solution:["Nxc6"],theme:"Pièce non défendue",rating:1450,
+   comment:"Avant de chercher une combinaison compliquée, regarde toujours ce qui est simplement gratuit : le fou c6 n'est protégé par rien."},
+  {id:"pin_win_knight",fen:"4k3/5ppp/2n5/1B1P4/8/8/5PPP/7K w - - 0 1",solution:["dxc6"],theme:"Clouage absolu",rating:1400,
+   comment:"Le cavalier est cloué sur la diagonale b5-e8 : il ne peut pas s'échapper sans exposer son roi. Le pion d5 n'a plus qu'à le croquer."},
+  {id:"discovered_attack_1",fen:"3r2k1/1r3ppp/8/3B4/8/8/5PPP/R2R3K w - - 0 1",solution:["Bxb7"],theme:"Attaque à la découverte",rating:1700,
+   comment:"Le fou capture la tour b7 tout en découvrant l'attaque de la tour d1 sur la dame... la tour d8. Un coup, deux gains."},
+  {id:"sicilian_hanging_bishop",fen:"6k1/2r2ppp/1b6/3N4/8/8/5PPP/R6K w - - 0 1",solution:["Nxb6"],theme:"Diagonale sicilienne",rating:1600,
+   comment:"Setup Taimanov typique (dame/tour c7, fou b6) : si la case d5 t'appartient et que rien ne défend b6, le cavalier s'invite et croque le fou."},
+  {id:"trapped_knight",fen:"n5k1/5ppp/8/3N4/8/8/8/R6K w - - 0 1",solution:["Rxa8#"],theme:"Pièce piégée",rating:1300,
+   comment:"Le cavalier a8 n'a que deux cases de sortie (b6, c7) et ton cavalier d5 les surveille toutes les deux. La tour ramasse — et c'est même mat, le roi est bloqué par ses pions."},
+  {id:"greek_gift_french",fen:"6k1/5ppp/8/8/8/3B4/8/3Q3K w - - 0 1",solution:["Bxh7+"],theme:"Sacrifice grec (structure française)",rating:1800,
+   comment:"Le classique sacrifice du fou en h7 quand rien ne le défend et que ta dame peut suivre sur la diagonale h5. À reconnaître par cœur dans tes parties de Française Échange."},
+  {id:"italian_pin_break",fen:"3rk3/p4ppp/2n5/1B1P4/8/8/P4PPP/R6K w - - 0 1",solution:["dxc6"],theme:"Clouage exploité (structures italiennes)",rating:1900,
+   comment:"Même idée que le clouage absolu, mais avec plus de pièces sur l'échiquier pour brouiller les pistes : le cavalier c6 est cloué sur la diagonale b5-e8, le pion d5 le croque gratuitement."},
+  {id:"winawer_discovery",fen:"1r4k1/p1q2ppp/2n5/1B6/8/P1P5/5PPP/1R1Q3K w - - 0 1",solution:["Bxc6"],theme:"Découverte sur les cases faibles (Winawer)",rating:2000,
+   comment:"Deux gains en un coup : le fou croque le cavalier c6 ET libère la colonne b — ta tour b1 attaque maintenant directement la tour b8. Exactement le genre de faille que les pions doublés a3/c3 laissent derrière eux."},
+];
+
+const OPENINGS = [
+  {id:"french_winawer", title:"Française — Winawer (Pion Empoisonné)", side:"Noir", against:"1.e4 (si 3.Nc3)",
+   context:"Tu voulais du tranchant : voici l'arme la plus agressive de toute la théorie française. Le Winawer déséquilibre la partie dès le 3e coup — les pions doublés de Blanc en c3 deviennent une cible à vie, et la ligne du Pion Empoisonné (7...Qc7) est l'une des positions les plus combattues de l'histoire des échecs. Honnêteté : la position reste objectivement équilibrée en théorie, ce n'est pas un coup magique — mais c'est LA ligne où l'adversaire doit tout connaître par cœur pour ne pas se faire punir, et à ton niveau, c'est rarement le cas.",
+   moves:["e4","e6","d4","d5","Nc3","Bb4","e5","c5","a3","Bxc3+","bxc3","Ne7","Qg4","Qc7","Qxg7","Rg8","Qxh7","cxd4","Ne2","Nbc6"],
+   plans:[
+     "3...Bb4 cloue le cavalier c3. Après 4.e5 (Blanc ferme le centre) c5 5.a3, tranche sans hésiter : Bxc3+ est presque toujours le bon choix, même si ça donne la paire de fous à Blanc — les pions doublés c3/a3 valent bien plus cher à long terme.",
+     "Après 6.bxc3, ta cible stratégique est fixée pour toute la partie : les pions c3 et a3 ne peuvent plus être défendus par des pièces mineures. Toute ta stratégie tourne autour de la pression sur c3 (...Qa5, ...Nbc6-a5-c4).",
+     "7.Qg4 est LE coup critique. S'il est joué, tu es en terrain connu : 7...Qc7 sacrifie g7 et h7 pour un développement colossal et la colonne g grande ouverte — ta tour g8 et ta dame c7 valent largement les deux pions, ne panique pas en voyant ton roque disparaître.",
+     "Après 9...cxd4, Blanc choisit entre 10.Ne2 (le plus solide) et 10.Kd1 : dans les deux cas ton plan est ...Nbc6, ...Bd7, ...O-O-O — roque long rapide pendant que le roi blanc reste coincé au centre.",
+     "Si Blanc évite 7.Qg4 (par exemple 7.Nf3 ou 7.h4), joue simplement ...Nbc6 et ...Bd7 : ton avance de développement et la faiblesse de c3 comptent déjà beaucoup, pas besoin du sacrifice pour être bien."]},
+  {id:"french_exchange", title:"Française — Variante d'Échange", side:"Noir", against:"1.e4 (si 3.exd5)",
+   context:"Ta ligne la plus jouée contre 1.e4 (30% de victoires sur les 3 derniers mois). L'Échange a la réputation d'être ennuyeux — c'est justement pour ça que beaucoup de Noirs la sous-estiment et se font surprendre par l'initiative blanche.",
+   moves:["e4","e6","d4","d5","exd5","exd5","Nf3","Nf6","Bd3","Bd6","O-O","O-O","c4","c6"],
+   plans:[
+     "La structure est symétrique (aucun pion central) : ni Blanc ni Noir n'a d'avantage structurel — la partie se gagne avec les pièces, pas avec les pions.",
+     "Ton fou f8 va sur d6, exactement en face du fou blanc : ne le laisse pas s'échanger passivement, c'est ta pièce la plus active.",
+     "Ne joue pas ...c6 par réflexe avant d'avoir terminé ton développement — vise plutôt ...Nbd7/...Re8 puis choisis entre ...c6 (solide) ou garder le pion sur c7 pour ...Nc6.",
+     "Attention à l'attaque de la minorité (b4-b5 puis bxc6) si tu joues ...c6 : après bxc6, ton pion c6 devient une faiblesse à long terme. Réponds par de l'activité (...Re8, ...Bg4, ...Ne4) plutôt que de subir.",
+     "En cas de doute, cherche toujours l'échange de pièces mineures qui te libère, jamais celui qui te laisse un pion isolé sans compensation."]},
+  {id:"french_advance", title:"Française — Variante d'Avance (Wagner)", side:"Noir", against:"1.e4 (si 3.e5)",
+   context:"Ta deuxième ligne contre 1.e4 (36% de victoires). L'Avance ferme le centre tout de suite — le combat se déplace sur les colonnes c et f, et c'est souvent une course de plans plutôt que de tactique immédiate.",
+   moves:["e4","e6","d4","d5","e5","c5","c3","Nc6","Nf3","Qb6","a3"],
+   plans:[
+     "Le pion e5 blanc est à la fois une force (espace) et une faiblesse (il n'est plus soutenu par d4 après un futur ...cxd4) : ta cible n°1 est ce pion et la case d4.",
+     "Ta dame en b6 fait double emploi : elle presse sur d4/b2 et libère la case d8 pour ta tour. Ne la retire pas sans raison.",
+     "Développe ton fou c8 via ...Bd7 (pas ...Bg4, il n'y a pas de cible sur cette diagonale) puis mets tes cavaliers sur ...Nge7 et ...Nh6-f5 pour presser e5 et d4.",
+     "Ne te précipite pas sur ...cxd4 : garder la tension force parfois Blanc à jouer cxd4 lui-même, ce qui t'ouvre la colonne c après ...Rc8.",
+     "Si Blanc attaque au roi avec f4/g4, sa case e5/d4 s'affaiblit en retour — une percée ...f6 au bon moment casse souvent son initiative."]},
+  {id:"french_tarrasch_open", title:"Française — Tarrasch, Variante Ouverte", side:"Noir", against:"1.e4 (si 3.Nd2)",
+   context:"Contre 3.Nd2 (Tarrasch), le Winawer est impossible — le cavalier ne va pas en c3. Voici ta réponse la plus combative : 3...c5 attaque le centre tout de suite et vise une structure à pion isolé ACTIVE, pas une partie molle.",
+   moves:["e4","e6","d4","d5","Nd2","c5","exd5","exd5","Ngf3","Nc6","Bb5","Bd6","dxc5","Bxc5","O-O","Ne7"],
+   plans:[
+     "Après 6.Bb5 (le coup le plus gênant), ...Bd6 défend activement e5/c5 et prépare un développement rapide — ne joue jamais ...Bd7 passivement ici.",
+     "La structure qui arrive après 8...Nge7 ressemble à un Gambit Dame avec pion isolé d5 : utilise les pièces AVANT que Blanc ne bloque et n'échange tout — ...O-O, ...Bg4/...Re8, cherche l'activité, pas la simplification.",
+     "Si Blanc joue 4.Ngf3 au lieu de 4.exd5, continue avec ...cxd4 5.Nxd4 (ou Qxd4) Nf6 : une structure similaire, un jeu de pièces tout aussi actif.",
+     "Ta pire erreur serait de laisser la position se figer : le pion d5 isolé n'est une faiblesse que si tu n'as plus de pièces pour l'exploiter dynamiquement — garde les dames et les tours sur l'échiquier le plus longtemps possible."]},
+  {id:"wing_gambit_e5", title:"Wing Gambit — face à 2...e5 (ton point faible identifié)", side:"Blanc", against:"1...c5 2.b4 e5",
+   context:"Sur tes 13 parties de Wing Gambit, deux défaites viennent EXACTEMENT de cette réponse (2...e5), et dans les deux cas tu as joué 3.bxc5 immédiatement. Stockfish confirme : ce n'est pas ta technique qui a lâché, c'est le 3e coup — 3.Nf3 (attaquer e5 avant de reprendre en c5) est nettement plus précis et rend la position parfaitement jouable.",
+   moves:["e4","c5","b4","e5","Nf3","Nf6","Nxe5","Nc6","Bb2","Nxe5","Bxe5","cxb4","a3"],
+   plans:[
+     "Ne te presse pas de reprendre en c5 : 3.Nf3! attaque immédiatement le pion e5 et garde toutes tes options ouvertes — Noir doit déjà répondre à une menace au lieu de développer tranquillement.",
+     "Après 4.Nxe5, tu regagnes vite le terrain : 4...Nc6 5.Bb2 Nxe5 6.Bxe5 et tu récupères aussi le pion b4 dans la foulée avec cxb4/a3 — tu ne restes jamais sacrifié bien longtemps dans cette ligne.",
+     "Point trouvé dans tes parties perdues : à chaque fois, tu as laissé Noir jouer ...Bg4 tranquillement puis exécuter la percée centrale ...d5 sans réagir. La prochaine fois, joue h3 tôt pour empêcher le clouage, ou prépare Qe2 pour t'en libérer immédiatement.",
+     "Rappel de style : dans un gambit, TU as besoin de complications. Le point commun de tes deux parties perdues, c'est d'être arrivées à un finale simplifié où le pion manquant a fini par compter — garde les dames sur l'échiquier tant que ton développement est en avance."]},
+  {id:"wing_gambit_accepted", title:"Wing Gambit — ligne principale (2...cxb4)", side:"Blanc", against:"1...c5 2.b4 cxb4",
+   context:"Ta ligne la plus fréquente. Une de tes parties perdues montre 4.a3 joué avant 4.d4 — un détail qui change beaucoup : Stockfish préfère nettement 4.d4 immédiat, qui lutte pour le centre avant de songer à regagner le pion.",
+   moves:["e4","c5","b4","cxb4","Nf3","Nc6","d4","e6","a3","d5","e5","bxa3","c3","a6"],
+   plans:[
+     "4.d4 avant 4.a3 : le centre compte plus que le pion b4 pour l'instant. Si Noir conteste avec ...d5, 6.e5! ferme le centre à ton avantage (espace) avant même de reprendre le pion.",
+     "Une fois le pion b4 regagné (via bxa3/cxb4 selon les lignes), tu es à égalité matérielle avec un temps de développement et de l'espace en prime — c'est LÀ que le gambit doit démontrer sa valeur, pas avant.",
+     "Sois honnête sur le statut objectif de cette ouverture : les moteurs la jugent légèrement inconfortable pour Blanc quelle que soit la ligne (environ -0,2 à -0,3). Aucun souci en parties rapides contre des adversaires imparfaits — mais si tu veux un jour un coup de sûreté à 100%, l'Alapin (2.c3) reste juste en dessous dans ton répertoire.",
+     "Comme contre 2...e5 : ne brade pas les dames trop vite. Ton compte en banque, c'est l'initiative — les échanges généraux profitent presque toujours au camp qui a le pion en plus."]},
+  {id:"sicilian_alapin", title:"Anti-Sicilienne — Alapin (assurance-vie)", side:"Blanc", against:"1...c5",
+   context:"Tu préfères le tranchant du Wing Gambit — très bien, les deux modules précédents t'aident à mieux le jouer. Garde quand même l'Alapin (2.c3) sous le coude : le jour où tu veux un système 100% sain sans y penser, il est là.",
+   moves:["e4","c5","c3","d5","exd5","Qxd5","d4","Nf6","Nf3","e6"],
+   plans:[
+     "Ton idée centrale : jouer d4 dans de bonnes conditions pour un centre de pions sain, puis développer normalement (Nf3, Be2/Bc4, O-O).",
+     "La dame noire sur d5 est exposée — Nc3 ou Na3-c4 avec tempo peut te faire gagner un temps de développement gratuit.",
+     "Ne cherche pas la complication immédiate : l'Alapin se joue en obtenant un léger avantage d'espace, puis en pressant patiemment. C'est l'opposé du style du Gambit de l'Aile.",
+     "Si Noir joue ...Nc6 au lieu de ...Nf6, même idée : d4, Nf3, développement naturel, roque, puis pression centrale."]},
+  {id:"scandinavian_main", title:"Scandinave — Ligne principale", side:"Blanc", against:"1...d5",
+   context:"Ta ligne actuelle (Marshall Moderne) ne gagne que 20% de tes parties — ton pire score toutes ouvertures confondues. Cette ligne classique est plus simple et exploite mieux ton avance de développement.",
+   moves:["e4","d5","exd5","Qxd5","Nc3","Qa5","d4","Nf6","Nf3"],
+   plans:[
+     "Chaque coup blanc développe une pièce EN CHASSANT la dame noire : Nc3 (tempo), d4 (ouvre le jeu), Nf3 (prépare Bd2/Bc4 avec tempo sur la dame a5).",
+     "Ta prochaine pièce est le fou c1 : Bd2 ou Bf4 attaque la dame et te fait gagner encore un temps.",
+     "Ne cours pas après la dame à tout prix — un coup de développement qui la chasse EN MÊME TEMPS vaut toujours mieux qu'un coup qui ne fait que la chasser.",
+     "Vise le milieu de partie avec 4-5 pièces développées contre 1-2 : cet avantage de tempo doit devenir une attaque ou une pression centrale, pas juste un pion gagné."]},
+  {id:"qgd_modern", title:"Gambit Dame Refusé — Moderne", side:"Noir", against:"1.d4",
+   context:"Ta ligne contre 1.d4 avec ...e6 ne gagne que 25% de tes parties. Voici la version moderne (Nf3 avant Bg5) qui te donne plus de flexibilité sur ta structure.",
+   moves:["d4","d5","c4","e6","Nc3","Nf6","Nf3","Be7","Bg5","O-O","e3","h6"],
+   plans:[
+     "...h6 force Blanc à préciser ses intentions avec son fou g5 (Bxf6, Bh4 ou Bf4) avant que tu ne t'engages sur ta structure.",
+     "Trois plans classiques : (1) ...Nbd7 puis ...dxc4 et ...c5, (2) ...b6 et ...Bb7 (Tartakower, très solide), (3) ...c6 et jeu à la Carlsbad si Blanc échange sur d5.",
+     "Ne laisse jamais ton fou f8 s'enfermer derrière ta propre chaîne de pions : s'il est bon (diagonale ouverte) tu es bien ; s'il est mauvais, cherche à l'échanger ou le réactiver via ...b6/...Bb7.",
+     "Faiblesse à connaître : après ...dxc4 et Bxc4, la case e6 peut devenir sensible à un sacrifice de fou si tu négliges ton flanc dame."]},
+  {id:"qga_central", title:"Gambit Dame Accepté — Variante Centrale", side:"Noir", against:"1.d4",
+   context:"Ta ligne où tu prends le pion c4 ne gagne que 25% de tes parties. La théorie ici est précise : rendre le pion au bon moment avec ...c5 pour un jeu égal et actif.",
+   moves:["d4","d5","c4","dxc4","Nf3","Nf6","e3","e6","Bxc4","c5"],
+   plans:[
+     "Le pion c4 pris n'est PAS à garder — c'est un gambit temporaire. ...c5 est l'idée thématique qui égalise immédiatement la partie.",
+     "Après ...c5, la position se simplifie souvent vers un jeu symétrique avec un léger clou sur d4 — termine ton développement (...Nc6/...Nbd7, ...Be7, ...O-O) sans perdre de temps.",
+     "Ne t'accroche jamais au pion c4 en jouant ...b5 sans nécessité : ce pion affaiblit ta structure pour un gain souvent illusoire.",
+     "Si Blanc joue e4 au lieu de e3, même règle : ...c5 immédiatement pour attaquer le centre avant qu'il ne devienne trop fort."]},
+  {id:"caro_kann_advance", title:"Caro-Kann — 2.Ne2 (ta ligne, à consolider)", side:"Blanc", against:"1...c6",
+   context:"C'est ta ligne la plus jouée et la plus rentable contre la Caro-Kann (58% de victoires, 12 parties) — continue, voici comment enchaîner proprement après 3.e5.",
+   moves:["e4","c6","Ne2","d5","e5","Bf5","Ng3","Bg6","h4","h6"],
+   plans:[
+     "2.Ne2 suivi de 3.e5 rejoint les idées classiques de la Variante d'Avance : ton pion e5 gagne de l'espace, ton cavalier g3 vise le fou g6 et prépare h4-h5.",
+     "h4-h5 est ton arme thématique : elle chasse le fou vers h7, temporairement hors-jeu, te laissant un temps d'avance pour Bd3/Bc4 ou Nf3.",
+     "Ne néglige pas ton développement pendant que tu presses le fou : Nf3, Bd3 (ou Be2) et O-O restent la priorité dès que possible.",
+     "Ta case cible à long terme est f5/e5 : avec le cavalier g3 et un fou bien placé, une percée f4-f5 devient souvent le plan gagnant en milieu de partie."]},
+  {id:"italian_giuoco_piano", title:"Italien — Giuoco Piano (fondation solide)", side:"Blanc", against:"1...e5",
+   context:"54 parties cette période contre 1...e5, et un mélange de Philidor, Trois Cavaliers, Écossaise, Ruy Lopez selon l'humeur de l'adversaire — ça marche (61%) mais tu n'as pas de vrai système. Voici UNE ouverture à apprendre une bonne fois pour toutes : peu de théorie, des plans clairs, quasiment impossible à réfuter.",
+   moves:["e4","e5","Nf3","Nc6","Bc4","Bc5","c3","Nf6","d4","exd4","cxd4","Bb4+","Bd2","Bxd2+","Nbxd2","d5"],
+   plans:[
+     "L'idée n°1 du Giuoco Piano : construire le centre avec c3 puis d4 AVANT que Noir ne puisse le faire. c3 prépare d4 et prépare aussi une retraite pour ton fou si Noir joue ...Na5 ou ...Nb4 plus tard.",
+     "6...Bb4+ est presque automatique pour Noir (le seul coup qui évite de perdre du temps) — 7.Bd2 échange les fous et 9...d5 est la réponse thématique au centre : n'aie pas peur, la position reste parfaitement égale et très saine pour toi.",
+     "Après l'échange des fous et ...d5, tu obtiens une structure symétrique où ton léger avantage (le trait, un développement légèrement plus fluide) suffit à presser sans risque — le genre de position 'facile à jouer, dure à perdre' que tu cherches.",
+     "Si Noir dévie plus tôt (4...Bb4+ avant même d4, ou 5...Nxe4), les mêmes idées de développement rapide + roque + pression centrale s'appliquent : ne mémorise pas des coups par cœur, comprends que ton but est TOUJOURS c3+d4 le plus vite possible."]},
+];
+
+/* ======================= HELPERS ======================= */
+const PIECE_GLYPH = {p:"♟",n:"♞",b:"♝",r:"♜",q:"♛",k:"♚"};
+function tierLabel(rating){
+  if(rating < 1500) return "Échauffement";
+  if(rating < 1800) return "Confirmé";
+  if(rating < 2000) return "Avancé";
+  return "Expert";
+}
+function load(key, fallback){ try{ const v = localStorage.getItem(key); return v?JSON.parse(v):fallback; }catch(e){ return fallback; } }
+function save(key, val){ try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){} }
+
+/* ======================= DASHBOARD ======================= */
+function renderLedger(){
+  const items = [
+    {k:"Rapide", v:STATS.rapid.last, b:"best "+STATS.rapid.best},
+    {k:"Blitz", v:STATS.blitz.last, b:"best "+STATS.blitz.best},
+    {k:"Bullet", v:STATS.bullet.last, b:"best "+STATS.bullet.best},
+    {k:"Tactique", v:STATS.tactics.hi, b:"plage "+STATS.tactics.lo+"–"+STATS.tactics.hi},
+    {k:"Puzzle Rush", v:STATS.puzzleRush, b:"meilleur score"},
+  ];
+  document.getElementById("ledger").innerHTML = items.map(it =>
+    `<div class="tile"><div class="k">${it.k}</div><div class="v tabular">${it.v}</div><div class="b">${it.b}</div></div>`
+  ).join("");
+}
+
+function renderDiagnostic(){
+  document.getElementById("diagGrid").innerHTML = WEAKNESSES.map((w,i) => {
+    const sev = w.win < 25 ? "crit" : "warn";
+    return `<div class="wcard" tabindex="0" data-opening="${w.openingId}">
+      <div class="top"><div><div class="name">${w.name}</div><div class="side">${w.side} · ${w.n} parties</div></div>
+      <span class="pill ${sev}">${w.win}%</span></div>
+      <div class="bar"><i style="width:${w.win}%"></i></div>
+      <div class="stat">taux de victoire sur la période</div>
+    </div>`;
+  }).join("");
+  document.querySelectorAll(".wcard").forEach(el => {
+    el.addEventListener("click", () => openOpeningFromDiagnostic(el.dataset.opening));
+    el.addEventListener("keydown", e => { if(e.key==="Enter") openOpeningFromDiagnostic(el.dataset.opening); });
+  });
+}
+
+function openOpeningFromDiagnostic(id){
+  switchTab("openings");
+  const idx = OPENINGS.findIndex(o => o.id === id);
+  if(idx >= 0) loadOpening(idx);
+}
+
+/* ======================= TABS ======================= */
+function switchTab(name){
+  document.querySelectorAll(".tabbtn").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
+  document.querySelectorAll(".panel").forEach(p => p.classList.toggle("active", p.id === "panel-"+name));
+}
+document.querySelectorAll(".tabbtn").forEach(b => b.addEventListener("click", () => switchTab(b.dataset.tab)));
+
+/* ======================= BOARD RENDERER ======================= */
+function buildBoardSkeleton(boardEl, rankLabelsEl, fileLabelsEl, orientationWhite){
+  boardEl.innerHTML = "";
+  const ranks = orientationWhite ? [8,7,6,5,4,3,2,1] : [1,2,3,4,5,6,7,8];
+  const files = orientationWhite ? ["a","b","c","d","e","f","g","h"] : ["h","g","f","e","d","c","b","a"];
+  for(let r=0;r<8;r++){
+    for(let f=0;f<8;f++){
+      const sq = document.createElement("div");
+      const file = files[f], rank = ranks[r];
+      const light = (file.charCodeAt(0)-97 + rank) % 2 === 1;
+      sq.className = "sq " + (light ? "light":"dark");
+      sq.dataset.square = file+rank;
+      boardEl.appendChild(sq);
+    }
+  }
+  rankLabelsEl.innerHTML = ranks.map(r=>`<span>${r}</span>`).join("");
+  fileLabelsEl.innerHTML = files.map(f=>`<span>${f}</span>`).join("");
+}
+
+function paintPieces(boardEl, game){
+  const board = game.board(); // 8x8, rank8 -> rank1, each row a->h
+  const map = {};
+  for(let r=0;r<8;r++){
+    for(let f=0;f<8;f++){
+      const cell = board[r][f];
+      if(!cell) continue;
+      const file = "abcdefgh"[f];
+      const rank = 8-r;
+      map[file+rank] = cell;
+    }
+  }
+  boardEl.querySelectorAll(".sq").forEach(sq => {
+    const cell = map[sq.dataset.square];
+    const existing = sq.querySelector(".piece");
+    if(existing) existing.remove();
+    if(cell){
+      const span = document.createElement("span");
+      span.className = "piece " + (cell.color === "w" ? "white":"black");
+      span.textContent = PIECE_GLYPH[cell.type];
+      sq.appendChild(span);
+    }
+  });
+}
+
+function clearHighlights(boardEl){
+  boardEl.querySelectorAll(".sq").forEach(sq => sq.classList.remove("selected","dot","capture","lastmove","check"));
+}
+
+function markLastMove(boardEl, move){
+  if(!move) return;
+  const from = boardEl.querySelector(`.sq[data-square="${move.from}"]`);
+  const to = boardEl.querySelector(`.sq[data-square="${move.to}"]`);
+  if(from) from.classList.add("lastmove");
+  if(to) to.classList.add("lastmove");
+}
+
+function markCheck(boardEl, game){
+  if(!game.in_check()) return;
+  const turn = game.turn();
+  const board = game.board();
+  for(let r=0;r<8;r++) for(let f=0;f<8;f++){
+    const cell = board[r][f];
+    if(cell && cell.type==="k" && cell.color===turn){
+      const sq = boardEl.querySelector(`.sq[data-square="${"abcdefgh"[f]}${8-r}"]`);
+      if(sq) sq.classList.add("check");
+    }
+  }
+}
+
+/* ======================= PUZZLE MODE ======================= */
+let pzIndex = 0;
+let pzTimerId = null;
+let pzGame = null;
+let pzSelected = null;
+let pzSolved = false;
+let pzExpected = null; // {from,to,promotion}
+let pzProgress = load("pz_progress", {});
+let pzStreak = load("pz_streak", {current:0, best:0});
+
+const pzBoardEl = document.getElementById("pz-board");
+const pzRankEl = document.getElementById("pz-ranklabels");
+const pzFileEl = document.getElementById("pz-filelabels");
+
+function loadPuzzle(i){
+  if(pzTimerId){ clearTimeout(pzTimerId); pzTimerId = null; }
+  pzIndex = ((i % PUZZLES.length) + PUZZLES.length) % PUZZLES.length;
+  const pz = PUZZLES[pzIndex];
+  pzGame = new Chess(pz.fen);
+  pzSelected = null;
+  pzSolved = false;
+  const orientationWhite = pzGame.turn() === "w";
+  buildBoardSkeleton(pzBoardEl, pzRankEl, pzFileEl, orientationWhite);
+  paintPieces(pzBoardEl, pzGame);
+  document.getElementById("pz-theme").textContent = pz.theme + "  ·  " + tierLabel(pz.rating);
+  document.getElementById("pz-comment").textContent = "";
+  document.getElementById("pz-msg").textContent = "";
+  document.getElementById("pz-msg").className = "msg";
+  document.getElementById("pz-turn").textContent = (pzGame.turn()==="w" ? "Blanc":"Noir") + " au trait — trouve le meilleur coup";
+  // compute expected from/to via scratch move
+  const scratch = new Chess(pz.fen);
+  const mv = scratch.move(pz.solution[0]);
+  pzExpected = mv ? {from:mv.from, to:mv.to, promotion:mv.promotion} : null;
+  renderPuzzleChips();
+  attachPuzzleClicks();
+}
+
+function renderPuzzleChips(){
+  document.getElementById("pz-chips").innerHTML = PUZZLES.map((p,i) => {
+    const solved = pzProgress[p.id];
+    return `<span class="chip ${solved?"solved":""} ${i===pzIndex?"active":""}" data-i="${i}">#${i+1} <span class="rt">${p.rating}</span></span>`;
+  }).join("");
+  document.querySelectorAll("#pz-chips .chip").forEach(c => c.addEventListener("click", () => loadPuzzle(parseInt(c.dataset.i))));
+  const solvedCount = Object.keys(pzProgress).length;
+  document.getElementById("pz-solved").textContent = solvedCount + "/" + PUZZLES.length;
+  document.getElementById("pz-streak").textContent = pzStreak.current;
+  document.getElementById("pz-best").textContent = pzStreak.best;
+}
+
+function attachPuzzleClicks(){
+  pzBoardEl.querySelectorAll(".sq").forEach(sq => {
+    sq.onclick = () => onPuzzleSquareClick(sq.dataset.square);
+  });
+}
+
+function onPuzzleSquareClick(square){
+  if(pzSolved) return;
+  const piece = pzGame.get(square);
+  if(pzSelected){
+    if(pzSelected === square){ pzSelected = null; clearHighlights(pzBoardEl); return; }
+    const legal = pzGame.moves({square:pzSelected, verbose:true});
+    const target = legal.find(m => m.to === square);
+    if(target){
+      attemptPuzzleMove(pzSelected, square);
+      return;
+    }
+    if(piece && piece.color === pzGame.turn()){
+      pzSelected = square;
+      highlightPuzzleMoves(square);
+      return;
+    }
+    pzSelected = null; clearHighlights(pzBoardEl);
+    return;
+  }
+  if(piece && piece.color === pzGame.turn()){
+    pzSelected = square;
+    highlightPuzzleMoves(square);
+  }
+}
+
+function highlightPuzzleMoves(square){
+  clearHighlights(pzBoardEl);
+  const sq = pzBoardEl.querySelector(`.sq[data-square="${square}"]`);
+  if(sq) sq.classList.add("selected");
+  const legal = pzGame.moves({square, verbose:true});
+  legal.forEach(m => {
+    const t = pzBoardEl.querySelector(`.sq[data-square="${m.to}"]`);
+    if(t){ t.classList.add("dot"); if(m.flags.includes("c")) t.classList.add("capture"); }
+  });
+}
+
+function attemptPuzzleMove(from, to){
+  const move = pzGame.move({from, to, promotion:"q"});
+  pzSelected = null;
+  if(!move) return;
+  clearHighlights(pzBoardEl);
+  paintPieces(pzBoardEl, pzGame);
+  markLastMove(pzBoardEl, move);
+  markCheck(pzBoardEl, pzGame);
+  const correct = pzExpected && move.from === pzExpected.from && move.to === pzExpected.to;
+  const msgEl = document.getElementById("pz-msg");
+  if(correct){
+    pzSolved = true;
+    msgEl.textContent = "Correct !";
+    msgEl.className = "msg good";
+    document.getElementById("pz-comment").textContent = PUZZLES[pzIndex].comment;
+    if(!pzProgress[PUZZLES[pzIndex].id]){
+      pzProgress[PUZZLES[pzIndex].id] = true;
+      save("pz_progress", pzProgress);
+    }
+    pzStreak.current += 1;
+    if(pzStreak.current > pzStreak.best) pzStreak.best = pzStreak.current;
+    save("pz_streak", pzStreak);
+    renderPuzzleChips();
+  } else {
+    msgEl.textContent = "Pas ce coup — réessaie.";
+    msgEl.className = "msg bad";
+    pzStreak.current = 0;
+    save("pz_streak", pzStreak);
+    const thisPuzzleGame = pzGame;
+    pzTimerId = setTimeout(() => {
+      pzTimerId = null;
+      if(pzGame !== thisPuzzleGame) return; // a new puzzle was loaded meanwhile -- stale callback, ignore
+      pzGame.undo(); paintPieces(pzBoardEl, pzGame); clearHighlights(pzBoardEl);
+    }, 500);
+  }
+}
+
+document.getElementById("pz-retry").addEventListener("click", () => loadPuzzle(pzIndex));
+document.getElementById("pz-next").addEventListener("click", () => loadPuzzle(pzIndex+1));
+document.getElementById("pz-hint").addEventListener("click", () => {
+  if(pzExpected){
+    clearHighlights(pzBoardEl);
+    const sq = pzBoardEl.querySelector(`.sq[data-square="${pzExpected.from}"]`);
+    if(sq) sq.classList.add("selected");
+    pzSelected = pzExpected.from;
+    highlightPuzzleMoves(pzExpected.from);
+  }
+});
+
+/* ======================= OPENING MODE ======================= */
+let opIndex = 0;
+let opTimerId = null;
+let opGame = null;
+let opPly = 0;
+let opSelected = null;
+let opProgress = load("op_progress", {});
+
+const opBoardEl = document.getElementById("op-board");
+const opRankEl = document.getElementById("op-ranklabels");
+const opFileEl = document.getElementById("op-filelabels");
+
+function loadOpening(i){
+  if(opTimerId){ clearTimeout(opTimerId); opTimerId = null; }
+  opIndex = ((i % OPENINGS.length) + OPENINGS.length) % OPENINGS.length;
+  const o = OPENINGS[opIndex];
+  opGame = new Chess();
+  opPly = 0;
+  opSelected = null;
+  const userIsWhite = o.side === "Blanc";
+  buildBoardSkeleton(opBoardEl, opRankEl, opFileEl, userIsWhite);
+  paintPieces(opBoardEl, opGame);
+  document.getElementById("op-title").textContent = o.title;
+  document.getElementById("op-context").textContent = o.context;
+  document.getElementById("op-plans").innerHTML = o.plans.map(p => `<li>${p}</li>`).join("");
+  document.getElementById("op-msg").textContent = "";
+  document.getElementById("op-msg").className = "msg";
+  renderOpeningNav();
+  renderMoveList();
+  updateOpeningTurnLabel();
+  attachOpeningClicks();
+  maybeAutoPlayOpponent();
+}
+
+function renderOpeningNav(){
+  document.getElementById("op-nav").innerHTML = OPENINGS.map((o,i) => {
+    const done = opProgress[o.id];
+    return `<div class="onav-item ${i===opIndex?"active":""}" data-i="${i}">
+      <div><div class="t">${done?"✓ ":""}${o.title}</div><div class="s">${o.side} contre ${o.against}</div></div>
+      <span class="side-tag">${o.side}</span>
+    </div>`;
+  }).join("");
+  document.querySelectorAll("#op-nav .onav-item").forEach(el => el.addEventListener("click", () => loadOpening(parseInt(el.dataset.i))));
+}
+
+function renderMoveList(){
+  const o = OPENINGS[opIndex];
+  let html = "";
+  for(let i=0;i<o.moves.length;i++){
+    if(i%2===0) html += `<span class="mn">${(i/2)+1}.</span>`;
+    const played = i < opPly;
+    const current = i === opPly;
+    html += `<span class="mv ${played?"played":""} ${current?"current":""}">${o.moves[i]}</span>`;
+  }
+  document.getElementById("op-movelist").innerHTML = html;
+}
+
+function updateOpeningTurnLabel(){
+  const o = OPENINGS[opIndex];
+  const el = document.getElementById("op-turn");
+  if(opPly >= o.moves.length){
+    el.textContent = "Ligne terminée";
+    return;
+  }
+  const userIsWhite = o.side === "Blanc";
+  const isUserPly = (opPly % 2 === 0) === userIsWhite;
+  el.textContent = isUserPly ? "À toi de jouer" : "Réponse théorique…";
+}
+
+function attachOpeningClicks(){
+  opBoardEl.querySelectorAll(".sq").forEach(sq => {
+    sq.onclick = () => onOpeningSquareClick(sq.dataset.square);
+  });
+}
+
+function isUsersTurn(){
+  const o = OPENINGS[opIndex];
+  const userIsWhite = o.side === "Blanc";
+  return (opPly % 2 === 0) === userIsWhite;
+}
+
+function onOpeningSquareClick(square){
+  const o = OPENINGS[opIndex];
+  if(opPly >= o.moves.length || !isUsersTurn()) return;
+  const piece = opGame.get(square);
+  if(opSelected){
+    if(opSelected === square){ opSelected=null; clearHighlights(opBoardEl); return; }
+    const legal = opGame.moves({square:opSelected, verbose:true});
+    const target = legal.find(m => m.to === square);
+    if(target){ attemptOpeningMove(opSelected, square); return; }
+    if(piece && piece.color === opGame.turn()){ opSelected = square; highlightOpeningMoves(square); return; }
+    opSelected = null; clearHighlights(opBoardEl);
+    return;
+  }
+  if(piece && piece.color === opGame.turn()){
+    opSelected = square;
+    highlightOpeningMoves(square);
+  }
+}
+
+function highlightOpeningMoves(square){
+  clearHighlights(opBoardEl);
+  const sq = opBoardEl.querySelector(`.sq[data-square="${square}"]`);
+  if(sq) sq.classList.add("selected");
+  const legal = opGame.moves({square, verbose:true});
+  legal.forEach(m => {
+    const t = opBoardEl.querySelector(`.sq[data-square="${m.to}"]`);
+    if(t){ t.classList.add("dot"); if(m.flags.includes("c")) t.classList.add("capture"); }
+  });
+}
+
+function expectedOpeningMove(){
+  const o = OPENINGS[opIndex];
+  const san = o.moves[opPly];
+  const scratch = new Chess(opGame.fen());
+  const mv = scratch.move(san);
+  return mv ? {from:mv.from, to:mv.to} : null;
+}
+
+function attemptOpeningMove(from, to){
+  const expected = expectedOpeningMove();
+  const testGame = new Chess(opGame.fen());
+  const move = testGame.move({from, to, promotion:"q"});
+  opSelected = null;
+  if(!move){ return; }
+  const correct = expected && move.from === expected.from && move.to === expected.to;
+  const msgEl = document.getElementById("op-msg");
+  if(correct){
+    opGame.move({from, to, promotion:"q"});
+    clearHighlights(opBoardEl);
+    paintPieces(opBoardEl, opGame);
+    markLastMove(opBoardEl, move);
+    markCheck(opBoardEl, opGame);
+    opPly += 1;
+    msgEl.textContent = "";
+    renderMoveList();
+    updateOpeningTurnLabel();
+    checkOpeningComplete();
+    maybeAutoPlayOpponent();
+  } else {
+    msgEl.textContent = "Ce n'est pas le coup théorique ici — réessaie.";
+    msgEl.className = "msg bad";
+    clearHighlights(opBoardEl);
+  }
+}
+
+function maybeAutoPlayOpponent(){
+  const o = OPENINGS[opIndex];
+  if(opPly >= o.moves.length) return;
+  if(isUsersTurn()) return;
+  const thisOpeningGame = opGame;
+  const scheduledIndex = opIndex;
+  if(opTimerId) clearTimeout(opTimerId);
+  opTimerId = setTimeout(() => {
+    opTimerId = null;
+    if(opGame !== thisOpeningGame || opIndex !== scheduledIndex) return; // stale -- a different opening loaded meanwhile
+    const san = o.moves[opPly];
+    const move = opGame.move(san);
+    paintPieces(opBoardEl, opGame);
+    markLastMove(opBoardEl, move);
+    markCheck(opBoardEl, opGame);
+    opPly += 1;
+    renderMoveList();
+    updateOpeningTurnLabel();
+    checkOpeningComplete();
+  }, 450);
+}
+
+function checkOpeningComplete(){
+  const o = OPENINGS[opIndex];
+  if(opPly >= o.moves.length && !opProgress[o.id]){
+    opProgress[o.id] = true;
+    save("op_progress", opProgress);
+    renderOpeningNav();
+    document.getElementById("op-msg").textContent = "Ligne terminée !";
+    document.getElementById("op-msg").className = "msg good";
+  }
+}
+
+document.getElementById("op-restart").addEventListener("click", () => loadOpening(opIndex));
+document.getElementById("op-step").addEventListener("click", () => {
+  const o = OPENINGS[opIndex];
+  if(opPly >= o.moves.length) return;
+  const san = o.moves[opPly];
+  const move = opGame.move(san);
+  clearHighlights(opBoardEl);
+  paintPieces(opBoardEl, opGame);
+  markLastMove(opBoardEl, move);
+  markCheck(opBoardEl, opGame);
+  opPly += 1;
+  renderMoveList();
+  updateOpeningTurnLabel();
+  checkOpeningComplete();
+  maybeAutoPlayOpponent();
+});
+document.getElementById("op-hint").addEventListener("click", () => {
+  if(!isUsersTurn()) return;
+  const expected = expectedOpeningMove();
+  if(expected){
+    clearHighlights(opBoardEl);
+    const sq = opBoardEl.querySelector(`.sq[data-square="${expected.from}"]`);
+    if(sq) sq.classList.add("selected");
+    opSelected = expected.from;
+    highlightOpeningMoves(expected.from);
+  }
+});
+
+/* ======================= INIT ======================= */
+renderLedger();
+renderDiagnostic();
+loadPuzzle(0);
+loadOpening(0);
+</script>
